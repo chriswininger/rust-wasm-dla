@@ -25,7 +25,7 @@ extern {
 
 #[wasm_bindgen]
 pub fn greet() {
-    alert("Hello, wasm-rust-dla!");
+    alert("Hello, rust-wasm-dla!");
 }
 
 #[wasm_bindgen]
