@@ -1,23 +1,38 @@
 import { DLAField, FieldPosition } from '../pkg'
 import { memory } from '../pkg/wasm_rust_dla_bg'
 
-console.log('!!! much here')
-// const field = DLAField.new(600000, 1920, 1920)
-const field = DLAField.new(60000, 900, 900)
-const width = field.getWidth()
-const height = field.getHeight()
 
-const canvas = document.getElementById("dla-display")
-canvas.height = height
-canvas.width = width
+const width = 500;
+const height = 500;
+
+const canvases = [
+  document.getElementById("dla-display-1"),
+  document.getElementById("dla-display-2")
+]
+
+const fields = [
+  DLAField.new("dla-display-1", 60000, width, height),
+  //DLAField.new("dla-display-2", 60000, width, height)
+];
+
+
+canvases.forEach(canvas => {
+  canvas.height = height
+  canvas.width = width
+})
+
+// const width = field.getWidth()
+// const height = field.getHeight()
 
 
 const renderLoop = () => {
-  field.draw()
+  fields.forEach(field =>{
+    field.draw()
 
-  if (!field.nextState()) {
-    requestAnimationFrame(renderLoop)
-  }
+    if (!field.nextState()) {
+      requestAnimationFrame(renderLoop)
+    }
+  })
 }
 
 requestAnimationFrame(renderLoop)

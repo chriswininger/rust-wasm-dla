@@ -61,12 +61,13 @@ impl FieldPosition {
 pub struct DLAField {
     width: usize,
     height: usize,
+    canvas_id: String,
     positionHash: Vec<FieldPosition>
 }
 
 #[wasm_bindgen]
 impl DLAField {
-    pub fn new(numPoints: u32, width: usize, height: usize) -> DLAField {
+    pub fn new(canvas_id: String, numPoints: u32, width: usize, height: usize) -> DLAField {
         let mut positionHash = DLAField::generateEmptyPositionHash(width, height);
 
         for i in 0..numPoints {
@@ -84,10 +85,10 @@ impl DLAField {
             positionHash[ndx] = FieldPosition::new(FieldState::OCCUPIED)
         }
 
-        console::log_1(&"!!! new - 3".into());
         DLAField {
             width,
             height,
+            canvas_id,
             positionHash
         }
     }
@@ -343,7 +344,7 @@ impl DLAField {
 
     pub fn draw(&self) {
         let document = web_sys::window().unwrap().document().unwrap();
-        let canvas = document.get_element_by_id("dla-display").unwrap();
+        let canvas = document.get_element_by_id(&self.canvas_id).unwrap();
         let stuckSize = 1.0;
         let seedSize = 1.0;
 
