@@ -6,7 +6,7 @@ mod utils;
 use wasm_bindgen::prelude::*;
 use js_sys::Math;
 use web_sys::*;
-use wasm_bindgen::convert::{FromWasmAbi, Stack, WasmAbi};
+use wasm_bindgen::convert::{FromWasmAbi, WasmAbi};
 use std::f64;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
