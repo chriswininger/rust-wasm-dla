@@ -43,12 +43,62 @@ canvases.forEach(canvas => {
 
 const renderLoop = () => {
   fields.forEach(field => {
+    // Draw using Rust
     DLAFieldRenders.draw(field, "dla-display-1")
+    // DLAFieldRenders.draw(field, "dla-display-2")
 
-    if (!field.nextState()) {
+    // Draw using JS
+    draw(field, "dla-display-2")
+
+    if (field.next_state()) {
       requestAnimationFrame(renderLoop)
     }
   })
 }
 
 requestAnimationFrame(renderLoop)
+
+
+// temp test state progression
+// fields.forEach(field => {
+//   // Draw using Rust
+//   //DLAFieldRenders.draw(field, "dla-display-1")
+//   // DLAFieldRenders.draw(field, "dla-display-2")
+//
+//   // Draw using JS
+//   draw(field, "dla-display-2")
+//
+//
+//   field.next_state();
+//   field.next_state();
+//   field.next_state();
+//   field.next_state();
+//   field.next_state();
+//   field.next_state();
+//
+//   draw(field, "dla-display-2")
+//
+//
+// })
+
+
+function draw(field, canvasId) {
+  const canvas = document.getElementById(canvasId);
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#FF0000";
+
+
+  const width = field.get_width();
+  const height = field.get_height();
+  const numAgents = field.get_num_agents();
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  for (let i = 0; i < numAgents; i++) {
+    const agent = field.get_agent_at(i);
+    const agentX = agent.get_x();
+    const agentY = agent.get_y();
+
+    ctx.fillRect(agentX, agentY, 1, 1);
+  }
+}

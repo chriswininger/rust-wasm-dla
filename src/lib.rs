@@ -6,15 +6,15 @@ mod colorized_point;
 mod field_position;
 
 use wasm_bindgen::prelude::*;
-use js_sys::Math;
+use js_sys::{Math};
 use web_sys::*;
 use wasm_bindgen::convert::{FromWasmAbi, WasmAbi};
 use std::f64;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
-use crate::colorized_point::ColorizedPoint;
-use crate::colorized_point::Color;
+use crate::colorized_point::*;
+
 use crate::field_position::FieldPosition;
 use crate::field_position::FieldState;
 
@@ -25,16 +25,7 @@ use crate::field_position::FieldState;
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 #[wasm_bindgen]
-extern {
-    fn alert(s: &str);
-}
-
-#[wasm_bindgen]
-pub fn greet() {
-    alert("Hello, rust-wasm-dla!");
-}
-
-#[wasm_bindgen]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DLAField {
     width: usize,
     height: usize,
@@ -62,13 +53,15 @@ impl DLAField {
                 y =  DLAField::gen_range(0, height);
             }
 
+            let agent = ColorizedPoint::new(x, y, Color::new(255, 0, 0, 100));
+
             let ndx = DLAField::get_ndx(x, y, width);
 
             // occupy the position
-            position_hash[ndx] = FieldPosition::new(FieldState::OCCUPIED);
+            position_hash[ndx] = FieldPosition::new(FieldState::OCCUPIED, Some(agent));
 
             // store the agent
-            agents.push(ColorizedPoint::new(x, y, Color::new(255, 0, 0, 100)));
+            agents.push(agent);
         }
 
         DLAField {
@@ -82,7 +75,7 @@ impl DLAField {
 
     fn generateEmptyPositionHash(width: usize, height: usize) -> Vec<FieldPosition> {
         (0..width * height).map(|ndx| {
-            FieldPosition::new(FieldState::EMPTY)
+            FieldPosition::new(FieldState::EMPTY, None)
         }).collect()
     }
 
@@ -128,19 +121,173 @@ impl DLAField {
 
 #[wasm_bindgen]
 impl DLAField {
-    pub fn getWidth(&self) -> usize {
+    pub fn get_width(&self) -> usize {
         self.width
     }
 
-    pub fn getHeight(&self) -> usize {
+    pub fn get_height(&self) -> usize {
         self.width
+    }
+
+    pub fn get_num_agents(&self) -> usize {
+        self.agents.len()
     }
 
     pub fn get_agent_at(&self, ndx: usize) -> ColorizedPoint {
         self.agents[ndx]
     }
 
-    pub fn nextState(&mut self) -> bool {
+    fn get_agent_at_borrow(&mut self, ndx: usize) -> &mut ColorizedPoint {
+        &mut self.agents[ndx]
+    }
+
+    // pub fn next_state(&mut self) -> bool {
+    //     let mut has_next_state = false;
+    //
+    //     // might be better to walk the y array in reverse so we check/update lowest first
+    //     let mut cntStuck = 0;
+    //
+    //     // let test_agent_x = self.get_agent_at(0).get_x() as i32;
+    //     // let test_agent_y = self.get_agent_at(0).get_y() as i32;
+    //     //
+    //     // console::log_3(&"!!! test_agent position:".into(), &test_agent_x.into(), &test_agent_y.into());
+    //
+    //     let new_agents: Vec<ColorizedPoint> = [].to_vec();
+    //
+    //     for agent_ndx in 0..self.get_num_agents() {
+    //         let mut agent = self.get_agent_at(agent_ndx);
+    //         let x = agent.get_x();
+    //         let y = agent.get_y();
+    //
+    //         match agent.state {
+    //             AgentState::FREE => {
+    //                 has_next_state = true;
+    //
+    //                 // find the next available position
+    //                 let new_position = self.findNextPosition(x, y);
+    //
+    //                 // check that we didn't just resolve the same location
+    //                 if x != new_position.0 && y != new_position.1 {
+    //                     let will_be_stuck = self.isStuck(
+    //                         new_position.0, new_position.1, false);
+    //
+    //                     // get indexes to update the old field system
+    //                     let old_field_ndx = DLAField::get_ndx(x, y, self.get_width());
+    //                     let new_field_ndx = DLAField::get_ndx(
+    //                                     new_position.0, new_position.1, self.get_width());
+    //
+    //                     if will_be_stuck {
+    //                         self.position_hash[new_field_ndx] =
+    //                             FieldPosition::new(FieldState::STUCK, Some(agent));
+    //
+    //                         agent.state = AgentState::STUCK
+    //                     } else {
+    //                         self.position_hash[new_field_ndx] =
+    //                             FieldPosition::new(FieldState::OCCUPIED, Some(agent));
+    //                     }
+    //                     self.position_hash[old_field_ndx] =
+    //                         FieldPosition::new(FieldState::EMPTY, None);
+    //
+    //                     // update the agent
+    //                     agent.x = new_position.0;
+    //                     agent.y = new_position.1;
+    //
+    //                     self.agents[agent_ndx] = agent;
+    //                 }
+    //             },
+    //             AgentState::STUCK => {}
+    //         }
+    //     }
+    //
+    //     has_next_state
+    // }
+
+    pub fn next_state(&mut self) -> bool {
+        let mut has_next_state = false;
+
+        // might be better to walk the y array in reverse so we check/update lowest first
+        let mut cntStuck = 0;
+
+        // let test_agent_x = self.get_agent_at(0).get_x() as i32;
+        // let test_agent_y = self.get_agent_at(0).get_y() as i32;
+        //
+        // console::log_3(&"!!! test_agent position:".into(), &test_agent_x.into(), &test_agent_y.into());
+
+        let mut new_agents: Vec<ColorizedPoint> = [].to_vec();
+
+        for x in 0..self.width {
+            for y in (0..self.height).rev() {
+                let field_ndx = DLAField::get_ndx(x, y, self.width);
+                let agent_at_position = self.position_hash[field_ndx].agent;
+
+                match agent_at_position {
+                    Some(mut agent) => {
+                        // console::log_1(&"!!! found some".into());
+                        // let x = agent.get_x();
+                        // let y = agent.get_y();
+
+                        match agent.state {
+                            AgentState::FREE => {
+                                has_next_state = true;
+
+                                let stuck = self.isStuck(
+                                    x, y, false);
+
+                                if stuck {
+                                    agent.state = AgentState::STUCK;
+
+                                    self.position_hash[field_ndx] =
+                                        FieldPosition::new(FieldState::STUCK, Some(agent));
+
+                                    // console::log_1(&"!!! should change to stuck for reals".into());
+
+                                } else {
+                                    // find the next available position
+                                    let new_position = self.findNextPosition(x, y);
+
+                                    // check that we didn't just resolve the same location
+                                    if x != new_position.0 && y != new_position.1 {
+
+                                        // get indexes to update the old field system
+                                        let old_field_ndx = DLAField::get_ndx(x, y, self.get_width());
+                                        let new_field_ndx = DLAField::get_ndx(
+                                            new_position.0, new_position.1, self.get_width());
+
+                                        // update the agent
+                                        agent.x = new_position.0;
+                                        agent.y = new_position.1;
+
+                                        self.position_hash[old_field_ndx] =
+                                            FieldPosition::new(FieldState::EMPTY, None);
+
+                                        self.position_hash[new_field_ndx] =
+                                            FieldPosition::new(FieldState::OCCUPIED, Some(agent));
+
+
+                                        //self.agents[agent_ndx] = agent;
+                                    }
+
+                                }
+
+                            },
+                            AgentState::STUCK => {
+                                // console::log_1(&"!!! stuck one".into());
+                            }
+                        }
+
+                        new_agents.push(agent);
+                    }
+                    None => {}
+                }
+            }
+        }
+
+        self.agents = new_agents;
+
+        has_next_state
+    }
+
+    pub fn nextState_old(&mut self) -> bool {
         let mut isDone = true;
 
         // might be better to walk the y array in reverse so we check/update lowest first
@@ -152,11 +299,11 @@ impl DLAField {
           can't go top to bottom so... (if doing this consider a move function(x1, y1, x2, y2) which
           updates both pieces of state
         */
-        for x in 0..self.getWidth() {
+        for x in 0..self.get_width() {
             // walk y in reverse so points near the bottom get stuck first
-            for y in (0..self.getHeight()).rev() {
+            for y in (0..self.get_height()).rev() {
 
-                let ndx = DLAField::get_ndx(x, y, self.getWidth());
+                let ndx = DLAField::get_ndx(x, y, self.get_width());
 
                 let stuck = self.isStuck(x, y, false);
 
@@ -173,18 +320,27 @@ impl DLAField {
 
                             let newPosition = self.findNextPosition(x, y);
                             let newNdx = DLAField::get_ndx(
-                                newPosition.0, newPosition.1, self.getWidth());
+                                newPosition.0, newPosition.1, self.get_width());
 
                             if x != newPosition.0 && y != newPosition.1 {
                                 self.position_hash[newNdx] =
-                                    FieldPosition::new(FieldState::OCCUPIED);
+                                    FieldPosition::new(FieldState::OCCUPIED, None);
 
                                 self.position_hash[ndx] =
-                                    FieldPosition::new(FieldState::EMPTY);
+                                    FieldPosition::new(FieldState::EMPTY, None);
+
+                                // let agent_to_update = self.find_agent_at_coordinate(x, y);
+                                // match agent_to_update {
+                                //     Some(agent) => {
+                                //         agent.set_x(newPosition.0);
+                                //         agent.set_y(newPosition.1);
+                                //     }
+                                //     None => {}
+                                // }
                             }
                         } else {
                             self.position_hash[ndx] =
-                                FieldPosition::new(FieldState::STUCK)
+                                FieldPosition::new(FieldState::STUCK, None)
                         }
                     },
                     FieldState::STUCK => {},
@@ -200,6 +356,30 @@ impl DLAField {
         isDone
     }
 
+    fn for_each_agent_from_top_to_bottom<F>(&self, f: F) where F : Fn(&DLAField, ColorizedPoint) {
+        let width = self.get_width();
+        let height = self.get_height();
+
+        for x in 0..self.width {
+            for y in 0..self.height {
+                let field_ndx = DLAField::get_ndx(x, y, width);
+                let agent_at_position = self.position_hash[field_ndx].agent;
+
+                match agent_at_position {
+                    Some(agent) => {
+                        f(&self, agent);
+                    }
+                    None => {}
+                }
+            }
+        }
+    }
+
+    fn find_agent_at_coordinate(&self, x: usize, y: usize) -> Option<&ColorizedPoint> {
+        self.agent_iterator()
+            .find(|agent| agent.get_x() == x && agent.get_y() == y)
+    }
+
     fn findNextPosition(&self, x: usize, y: usize) -> (usize, usize) {
         // needs to be i32 to prevent overflow
         let x = x as i32;
@@ -210,8 +390,8 @@ impl DLAField {
         let mut newY = if  DLAField::gen_bool(0.75) { y + 1 } else { y - 1 };
 
         // console::log_3(&"findNexPos 1".into(), &newX.into(), &newY.into());
-        let width = self.getWidth() as i32;
-        let height = self.getHeight() as i32;
+        let width = self.get_width() as i32;
+        let height = self.get_height() as i32;
 
         // TOOD (CAW): Consider pre-calculating available states and if there is just one possibility take it
         while newX < 0 || newY < 0 || newX >= width || newY >= height {
@@ -238,9 +418,13 @@ impl DLAField {
         }
     }
 
+    fn agent_iterator(&self) -> std::slice::Iter<ColorizedPoint> {
+        self.agents.iter()
+    }
+
     fn isStuck(&self, _x: usize, _y: usize, recursion: bool) -> bool {
-        let width = self.getWidth() as i32;
-        let height = self.getHeight() as i32;
+        let width = self.get_width() as i32;
+        let height = self.get_height() as i32;
         let x = _x as i32;
         let y = _y as i32;
 
@@ -294,7 +478,7 @@ impl DLAField {
     }
 
     fn isEmpty(&self, x: u32, y: u32) -> bool {
-        let ndx = DLAField::get_ndx(x as usize, y as usize, self.getWidth());
+        let ndx = DLAField::get_ndx(x as usize, y as usize, self.get_width());
         if let FieldState::EMPTY = self.position_hash[ndx].state {
             return true
         }

@@ -2,6 +2,13 @@ use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AgentState {
+    FREE,
+    STUCK
+}
+
+#[wasm_bindgen]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Color {
     r: u8,
     g: u8,
@@ -37,9 +44,10 @@ impl Color {
 #[wasm_bindgen]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ColorizedPoint {
-    x: usize,
-    y: usize,
-    color: Color,
+    pub x: usize,
+    pub y: usize,
+    pub state: AgentState,
+    color: Color
 }
 
 #[wasm_bindgen]
@@ -49,8 +57,13 @@ impl ColorizedPoint {
         ColorizedPoint {
             x,
             y,
-            color
+            color,
+            state: AgentState::FREE
         }
+    }
+
+    pub fn get_agent_state(&self) -> AgentState {
+        self.state
     }
 
     pub fn get_x(&self) -> usize {
