@@ -1,19 +1,42 @@
 <!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>DLA -- Powered By Web Assembly</title>
-  <link rel="stylesheet" href="index.css" />
-</head>
-<body>
-<div class="dla-displays">
-  <div class="dla-display-instance">
-    <canvas id="dla-display-1"></canvas>
-  </div>
-  <div class="dla-display-instance">
-    <canvas id="dla-display-2"></canvas>
-  </div>
-</div>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>DLA -- Powered By Web Assembly</title>
+    <link rel="stylesheet" href="index.css" />
+  </head>
+  <body>
+    <div class="dla-displays">
+      <div class="dla-display-instance">
+        <canvas id="dla-display-1"></canvas>
+      </div>
+      <div class="dla-display-instance">
+        <canvas id="dla-display-2"></canvas>
+      </div>
 
-<script src="./bootstrap.js"></script>
-</body>
+      <div class="dla-display-instance">
+        <canvas id="dla-display-3"></canvas>
+      </div>
+    </div>
+
+    <div>
+      <div>
+        <button id="btnStartAnimation">
+          Start Animation
+        </button>
+      </div>
+      <div>
+        <button id="btnRunToCompleteThenRender">
+          Find Final State Then Render
+        </button>
+      </div>
+
+      <div>
+        <button id="btnRestoreState">
+          Restore From Local Storage
+        </button>
+      </div>
+    </div>
+    <script src="./bootstrap.js"></script>
+  </body>
+</html>

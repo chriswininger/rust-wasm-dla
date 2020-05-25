@@ -1,14 +1,29 @@
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct StickyNeighbor {
+    pub x: usize,
+    pub y: usize
+}
+
+#[wasm_bindgen]
+impl StickyNeighbor {
+    #[wasm_bindgen(constructor)]
+    pub fn new(x: usize, y: usize) -> StickyNeighbor {
+        StickyNeighbor {x, y}
+    }
+}
+
+#[wasm_bindgen]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum AgentState {
     FREE,
     STUCK
 }
 
 #[wasm_bindgen]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Color {
     r: u8,
     g: u8,
@@ -42,23 +57,25 @@ impl Color {
 }
 
 #[wasm_bindgen]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ColorizedPoint {
     pub x: usize,
     pub y: usize,
     pub state: AgentState,
+    pub sticky_neighbor: Option<StickyNeighbor>,
     color: Color
 }
 
 #[wasm_bindgen]
 impl ColorizedPoint {
     #[wasm_bindgen(constructor)]
-    pub fn new(x: usize, y: usize, color: Color) -> ColorizedPoint {
+    pub fn new(x: usize, y: usize, color: Color, sticky_neighbor: Option<StickyNeighbor>) -> ColorizedPoint {
         ColorizedPoint {
             x,
             y,
             color,
-            state: AgentState::FREE
+            state: AgentState::FREE,
+            sticky_neighbor
         }
     }
 
@@ -78,11 +95,15 @@ impl ColorizedPoint {
         self.color
     }
 
-    pub fn set_x(mut self, x: usize) {
+    pub fn get_sticky_neighbor(&self) -> Option<StickyNeighbor> {
+        self.sticky_neighbor
+    }
+
+    pub fn set_x(&mut self, x: usize) {
         self.x = x;
     }
 
-    pub fn set_y(mut self, y: usize) {
+    pub fn set_y(&mut self, y: usize) {
         self.y = y;
     }
 }
